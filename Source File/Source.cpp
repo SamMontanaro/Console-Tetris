@@ -1,6 +1,7 @@
 // Program created by Michael Warmbier
 // Functions identifiers written in camelCasing, variable identifiers in spaced_words
 #include <iostream> // Input-Output
+#include <string> // Used for system call to create game window
 #include <conio.h> // Keyboard Input
 #include <ctime> // sRNG
 #include <Windows.h> // Windows functions
@@ -35,7 +36,7 @@ bool EXIT_Program = false, EXIT_Menu = false, EXIT_Game = false; // EXIT conditi
 COORD coord; // Coordinate for setCursor
 /// Game Variables
 int score = 0, level = 1; // Score and level
-unsigned char wall = 176, block = 177, background = ' '; // Character tiles
+unsigned char wall = 219u, block = 219u, background = ' '; // Character tiles
 bool Game_Has_Started = false, Block_Is_Active = false, failure = false; // Conditions
 int X_coord = 6, Y_coord = 1; // Reference coordinate for block creation and mapping
 int next_block = 0, current_block = 0, block_position = 1; // Block variables
@@ -61,8 +62,15 @@ bool failureCheck(); // Check if game has been lost, return true if so
 void loss(); // 'Animation' of failure
 void copyMap(); // Copy map to use as reference
 char getBlockVisual(); // Get block to use in Next Block visual.
+
+void SetConsoleCursor(bool);
+bool keyIsDown(char, bool = true, bool = true);
 /////////////////////////////////////////////////////////////////////////// MAIN START
 int main() {
+	SetConsoleCursor(false);
+	SetConsoleTitleA("Tetris");
+	int gameWidth = 30, gameHeight = 24;
+	system(("MODE " + to_string(gameWidth) + ", " + to_string(gameHeight)).c_str());
 	do { // ALWAYS DO ONCE // While program runs..
 		do { // ALWAYS DO ONCE // While menu runs..
 			EXIT_Menu = true;
@@ -592,6 +600,39 @@ void gameDraw() {
 }
 void gameInput() {
 	checkForCollision();
+	char enterKey = 13;
+	if (keyIsDown(enterKey)) {
+		if (!Game_Has_Started) {
+			Game_Has_Started = true;
+			clearStart();
+		}
+	}
+	if (keyIsDown('A', true, false) && !keyIsDown('D', true, false)) {
+		if (may_move_left)
+			X_coord--;
+		counter_limit = 60;
+	}
+	else if (keyIsDown('D', true, false) && !keyIsDown('A', true, false)) {
+		if (may_move_right)
+			X_coord++;
+		counter_limit = 60;
+	}
+	else if (keyIsDown('S')) {
+		if (counter != 0) {
+			if (counter > 4)
+				counter = 3;
+			counter_limit = 4;
+		}
+	}
+	else if (keyIsDown('Q', true, false)) {
+		if (rotationCheck())
+			block_position++;
+	}
+	else
+		counter_limit = 60;
+	may_move_right = true;
+	may_move_left = true;
+	/*
 	if (_kbhit()) { // If a key is hit..
 		switch (_getch()) { // Get the key..
 		case 13: // ENTER
@@ -626,6 +667,7 @@ void gameInput() {
 		counter_limit = 60;
 	may_move_right = true;
 	may_move_left = true;
+	*/
 }
 void gameLogic() {
 	checkForCollision();
@@ -657,4 +699,17 @@ void gameLogic() {
 	if (failure) {
 		loss();
 	}
+}
+
+void SetConsoleCursor(bool input) {
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO info;
+	info.dwSize = 100;
+	info.bVisible = input;
+	SetConsoleCursorInfo(out, &info);
+}
+
+bool keyIsDown(char key, bool pressed, bool held) {
+	int keyState = GetAsyncKeyState(static_cast<int>(key));
+	return (pressed && (keyState & 1)) || (held && (keyState & 0xA000));
 }
